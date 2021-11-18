@@ -6,7 +6,7 @@
 
 Linux: 
 ```
-./build-option.sh $(算法名)
+./build-option.sh 算法名
 ```
 
 Windows:
