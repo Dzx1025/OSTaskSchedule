@@ -1,0 +1,17 @@
+# ide settings
+.vscode/
+.idea/
+
+# windows
+*.dll
+*.lib
+*.exe
+
+# osx/linux
+*.a
+*.so
+*.out
+
+# test
+build/
+.DS_Store
