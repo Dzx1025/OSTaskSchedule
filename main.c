@@ -5,33 +5,33 @@
 
 #define MS(time) (time*100*1000)
 
-struct task_struct t0;  //init_task
+struct task_struct t0;  //init_process
 static int uni_pid = 0;
 struct timeval original_time;
 static int INT_FLAG = 0;
 
 void print_time();
 
-static void get_pid(int *);
+static void alloc_pid(int *);
 
-void init_task();
+void init_process();
 
-void create_task(unsigned long, unsigned long, int, long, long);
+void create_process(unsigned long, unsigned long, int, long, long);
 
-int over(struct task_struct *); //任务结束
+int do_exit(struct task_struct *ts); //任务结束
 
-void task_int(struct task_struct *);  //中断
+void task_with_int(struct task_struct *ts);    //中断
 
 int main(int argc, char *argv[]) {
     setbuf(stdout, 0);
     //初始化
-    init_task();
+    init_process();
     //创建进程
-    create_task(0, 4, TASK_INTERRUPTED, 5, 1);
-    create_task(2, 3, TASK_INTERRUPTED, 4, 1);
-    create_task(3, 5, TASK_INTERRUPTED, 3, 1);
-    create_task(3, 2, TASK_INTERRUPTED, 2, 1);
-    create_task(2, 2, TASK_INTERRUPTED, 2, 1);
+    create_process(0, 4, TASK_INTERRUPTED, 5, 1);
+    create_process(2, 3, TASK_INTERRUPTED, 4, 1);
+    create_process(3, 5, TASK_INTERRUPTED, 3, 1);
+    create_process(3, 2, TASK_INTERRUPTED, 2, 1);
+    create_process(2, 2, TASK_INTERRUPTED, 2, 1);
 
     print_queue();
     //运行调度
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
             printf("Task queue empty.\n");
             exit(0);
         }
-        if (INT_FLAG == 1) { //处理中断
+        if (INT_FLAG == 1) {    //处理中断
             INT_FLAG = 0;
             schedule(); //再次调度
         }
@@ -54,36 +54,36 @@ int main(int argc, char *argv[]) {
     exit(0);
 }
 
-long now_time() {
+long get_now_time() {
     long time;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     time = ((tv.tv_sec - original_time.tv_sec) * 1000 +
-            (tv.tv_usec - original_time.tv_usec) / 1000); // 毫秒
+            (tv.tv_usec - original_time.tv_usec) / 1000);   // 毫秒
     return time;
 }
 
 void print_time() {
-    printf("time: %ld\t\t", now_time()); // 毫秒
+    printf("time: %ld\t\t", get_now_time());    // 毫秒
 }
 
-static void get_pid(int *pid) {
+static void alloc_pid(int *pid) {
     *pid = uni_pid++;
 }
 
-void init_task() {
+void init_process() {
     INIT_LIST_HEAD(&t0.tasks);
     head = &t0.tasks;
-    get_pid(&t0.pid);
+    alloc_pid(&t0.pid);
     printf("Creating requests...\n");
     printf("Pid\tCreateTime\tRunTime\tState\tPriority\n");
 }
 
-void create_task(unsigned long createTime,  //时间均以100毫秒为单位
+void create_process(unsigned long createTime,  //时间均以100毫秒为单位
                  unsigned long runTime,
-                 int state,   //1:Stop  0:Run
+                    int state, //1:Stop  0:Run
                  long prior,
-                 long slice) {
+                    long slice) {
     struct task_struct *ts = malloc(sizeof(struct task_struct));
     ts->state = state;
 
@@ -92,7 +92,7 @@ void create_task(unsigned long createTime,  //时间均以100毫秒为单位
 #endif
     ts->time_slice = slice;
 
-    get_pid(&ts->pid);
+    alloc_pid(&ts->pid);
     ts->priority = prior;
     ts->run_time = runTime;
     ts->left_time = runTime;
@@ -103,7 +103,7 @@ void create_task(unsigned long createTime,  //时间均以100毫秒为单位
     list_add_tail(&ts->tasks, &t0.tasks);
 }
 
-int over(struct task_struct *ts) {
+int do_exit(struct task_struct *ts) {
     list_del(&ts->tasks);
     ts->state = TASK_KILLED;
     int deadPid = ts->pid;
@@ -114,7 +114,7 @@ int over(struct task_struct *ts) {
     return lastState != TASK_KILLED;
 }
 
-void task_int(struct task_struct *ts) {
+void task_with_int(struct task_struct *ts) {
     print_time();
     printf("task %d interrupted\n", ts->pid);
     ts->state = TASK_INTERRUPTED;
@@ -124,15 +124,15 @@ void task_int(struct task_struct *ts) {
     INT_FLAG = 1;   //中断标志置位
 }
 
-void execute_int(struct task_struct *ts) {
+void execute_with_int(struct task_struct *ts) {
     print_time();
     printf("task %d is running\n", ts->pid);
 
     unsigned long leftTime = ts->left_time;
-    if (leftTime <= ts->time_slice) {    //任务在中断前就结束运行
+    if (leftTime <= ts->time_slice) {   //任务在中断前就结束运行
         usleep(MS(leftTime));
         ts->left_time = 0;
-        if (over(ts)) {
+        if (do_exit(ts)) {
             printf("Exit Error!!!\n");
             exit(0);
         }
@@ -142,7 +142,7 @@ void execute_int(struct task_struct *ts) {
         ts->priority <<= 1; //aged
 #endif
         ts->left_time = leftTime - ts->time_slice;  //减去运行时间
-        task_int(ts);
+        task_with_int(ts);
     }
 }
 
@@ -150,7 +150,7 @@ void execute(struct task_struct *ts) {
     print_time();
     printf("task %d is running\n", ts->pid);
     usleep(MS(ts->run_time));   //do something
-    if (over(ts)) {
+    if (do_exit(ts)) {
         printf("Exit Error!!!\n");
         exit(0);
     }

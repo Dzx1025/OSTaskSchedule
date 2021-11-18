@@ -9,13 +9,13 @@
 
 extern struct task_struct t0;
 
-extern void execute_int(struct task_struct *ts); //可中断的运行
+extern void execute_with_int(struct task_struct *ts);    //可中断的运行
 
-extern void execute(struct task_struct *ts);//任务执行
+extern void execute(struct task_struct *ts);    //任务执行
 
 extern struct timeval original_time;
 
-extern long now_time();
+extern long get_now_time();
 
 #define TASK_RUNNING 0
 #define TASK_INTERRUPTED 1

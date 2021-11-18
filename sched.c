@@ -20,7 +20,7 @@ void switch_to(struct task_struct *next) {
     list_move(&next->tasks, head);  //移至队头
 //调用不同版本的execute函数
 #if defined (_RR_) || defined (_PRIOR_)
-    execute_int(next);
+    execute_with_int(next);
 #else
     execute(next);
 #endif
@@ -28,21 +28,21 @@ void switch_to(struct task_struct *next) {
 
 int schedule() {
     current = CURRENT_TASK();
-    if (list_empty(head))  //任务队列空
+    if (list_empty(head))   //任务队列空
         return -1;
     struct task_struct *next = current;
 
     struct list_head *head_p = head;
     struct task_struct *tp;
 
-#ifdef _FCFS_  // 先来先到服务算法
+#ifdef _FCFS_   // 先来先到服务算法
     list_for_each_entry(tp, head_p, tasks) {
         if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
             next = tp;
             break;
         }
     }
-#elif defined(_SJF_) // 短作业优先调度算法
+#elif defined(_SJF_)    // 短作业优先调度算法
     unsigned long nextCreateTime = current->create_time, nextRunTime = current->run_time;
     list_for_each_entry(tp, head_p, tasks) {
         if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
@@ -56,14 +56,14 @@ int schedule() {
             }
         }
     }
-#elif defined(_RR_)  // 时间片轮转调度算法
+#elif defined(_RR_) // 时间片轮转调度算法
     list_for_each_entry(tp, head_p, tasks) {
         if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
             next = tp;
             break;
         }
     }
-#elif defined(_PRIOR_)   // 优先级调度算法
+#elif defined(_PRIOR_)  // 优先级调度算法
     unsigned long nextCreateTime = current->create_time, nextPrior = current->run_time;
     list_for_each_entry(tp, head_p, tasks) {
         if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
