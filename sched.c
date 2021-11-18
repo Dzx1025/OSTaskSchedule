@@ -14,12 +14,21 @@ inline void print_queue() {
     }
 }
 
+unsigned long get_now_time() {
+    long time;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    time = ((tv.tv_sec - original_time.tv_sec) * 1000 +
+            (tv.tv_usec - original_time.tv_usec) / 1000);   // 毫秒
+    return time;
+}
+
 void switch_to(struct task_struct *next) {
     //将任务移到头部
     next->state = TASK_RUNNING;
     list_move(&next->tasks, head);  //移至队头
 //调用不同版本的execute函数
-#if defined (_RR_) || defined (_PRIOR_)
+#if defined (_RR_) || defined (_HRRN_)
     execute_with_int(next);
 #else
     execute(next);
@@ -63,17 +72,14 @@ int schedule() {
             break;
         }
     }
-#elif defined(_PRIOR_)  // 优先级调度算法
-    unsigned long nextCreateTime = current->create_time, nextPrior = current->run_time;
+#elif defined(_HRRN_)  // 响应比高者优先调度算法
+    unsigned long nextNice = current->nice;
     list_for_each_entry(tp, head_p, tasks) {
         if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
-            if (tp->create_time < nextCreateTime) {
+            tp->nice = 1 + (long) ((get_now_time() - tp->last_int_time) / tp->run_time);     //nice=1+作业等待时间/作业运行时间
+            if (tp->nice > nextNice) {
                 next = tp;
-                nextCreateTime = tp->create_time;
-                nextPrior = tp->priority;
-            } else if (tp->create_time == nextCreateTime && tp->priority < nextPrior) {
-                next = tp;
-                nextPrior = tp->priority;
+                nextNice = tp->nice;
             }
         }
     }
