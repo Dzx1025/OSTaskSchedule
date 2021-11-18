@@ -21,10 +21,6 @@ extern long now_time();
 #define TASK_INTERRUPTED 1
 #define TASK_KILLED (-1)
 
-//Debug
-#define _SJF_
-//----------------------
-
 struct list_head *head;
 
 #define CURRENT_TASK()  (list_entry((head)->next, struct task_struct, tasks))
