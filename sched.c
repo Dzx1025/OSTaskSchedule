@@ -1,33 +1,87 @@
-#include <stdio.h>
 #include "sched.h"
 
-void schedule() {
-#ifdef _FCFS_   // 先来先服务算法
-    printf("FCFS\n");
-#endif
-#ifdef _SJF_    // 短作业优先调度算法
-    printf("SJF\n");
-#endif
-#ifdef _RR_ // 时间片轮转调度算法
-    printf("RR\n");
-#endif
-#ifdef _PRIOR_  // 优先级调度算法
-    printf("_PRIOR_\n");
-#endif
-//将任务由头部移到尾部
-//    list_move(&tt->tasks, &t0.tasks);
-//将任务移到头部
-//    struct task_struct *p;
-//    struct list_head *head_p = &t0.tasks, *pos, *tmp;
-//    list_for_each_safe(pos, tmp, &t0.tasks) {
-//        p = list_entry(pos, struct task_struct, tasks);
-//        if (p->pid == 3) {
-//            list_move(&p->tasks, &t0.tasks);
-//        }
-//    }
-}
+struct task_struct *current;    //存储当前任务
 
 void print_info(struct task_struct *ts) {
-    printf("%d\t\t%lu\t\t%d\t\t%d\t\t%d\n", ts->pid, ts->start_time, 0, 0, 0);
+    printf("%d\t\t%lu\t\t%d\t\t%d\t\t%d\n", ts->pid, ts->create_time, 0, 0, 0);
+}
+
+inline void print_queue() {
+    struct list_head *head_p = &t0.tasks;
+    struct task_struct *tp;
+    list_for_each_entry(tp, head_p, tasks) {
+        print_info(tp);
+    }
+}
+
+void switch_to(struct task_struct *next) {
+    //将任务移到头部
+    next->state = TASK_RUNNING;
+    list_move(&next->tasks, head);  //移至队头
+//调用不同版本的execute函数
+#if defined (_RR_) || defined (_PRIOR_)
+    execute_int(next);
+#else
+    execute(next);
+#endif
+}
+
+int schedule() {
+    current = CURRENT_TASK();
+    if (list_empty(head))  //任务队列空
+        return -1;
+    struct task_struct *next = current;
+
+    struct list_head *head_p = head;
+    struct task_struct *tp;
+
+#ifdef _FCFS_  // 先来先到服务算法
+    list_for_each_entry(tp, head_p, tasks) {
+        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+            next = tp;
+            break;
+        }
+    }
+#elif defined(_SJF_) // 短作业优先调度算法
+    unsigned long nextCreateTime = current->create_time, nextRunTime = current->run_time;
+    list_for_each_entry(tp, head_p, tasks) {
+        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+            if (tp->create_time < nextCreateTime) {
+                next = tp;
+                nextRunTime = tp->run_time;
+                nextCreateTime = tp->create_time;
+            } else if (tp->create_time == nextCreateTime && tp->run_time < nextRunTime) {
+                next = tp;
+                nextRunTime = tp->run_time;
+            }
+        }
+    }
+#elif defined(_RR_)  // 时间片轮转调度算法
+    list_for_each_entry(tp, head_p, tasks) {
+        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+            next = tp;
+            break;
+        }
+    }
+#elif defined(_PRIOR_)   // 优先级调度算法
+    unsigned long nextCreateTime = current->create_time, nextPrior = current->run_time;
+    list_for_each_entry(tp, head_p, tasks) {
+        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+            if (tp->create_time < nextCreateTime) {
+                next = tp;
+                nextCreateTime = tp->create_time;
+                nextPrior = tp->priority;
+            } else if (tp->create_time == nextCreateTime && tp->priority < nextPrior) {
+                next = tp;
+                nextPrior = tp->priority;
+            }
+        }
+    }
+#else
+    printf("NOT DEFINED SCHEDULE!!!\n");
+#endif
+
+    switch_to(next);    //上下文切换
+    return 0;
 }
 

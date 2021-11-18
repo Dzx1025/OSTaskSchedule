@@ -1,85 +1,157 @@
-#include <signal.h>
+#include <unistd.h>
 #include <malloc.h>
 #include "list.h"
 #include "sched.h"
 
-struct task_struct t0;  //1号任务
-static int uni_pid = 0;
+#define MS(time) (time*100*1000)
 
-static int get_pid() {
-    return uni_pid++;
+struct task_struct t0;  //init_task
+static int uni_pid = 0;
+struct timeval original_time;
+static int INT_FLAG = 0;
+
+void print_time();
+
+static void get_pid(int *);
+
+void init_task();
+
+void create_task(unsigned long, unsigned long, int, long, long);
+
+int over(struct task_struct *); //任务结束
+
+void task_int(struct task_struct *);  //中断
+
+int main(int argc, char *argv[]) {
+    setbuf(stdout, 0);
+    //初始化
+    init_task();
+    //创建进程
+    create_task(0, 4, TASK_INTERRUPTED, 5, 1);
+    create_task(2, 3, TASK_INTERRUPTED, 4, 1);
+    create_task(3, 5, TASK_INTERRUPTED, 3, 1);
+    create_task(3, 2, TASK_INTERRUPTED, 2, 1);
+    create_task(2, 2, TASK_INTERRUPTED, 2, 1);
+
+    print_queue();
+    //运行调度
+    printf("--------------------------------------------------------\n");
+    printf("Start Schedule:\n");
+
+    gettimeofday(&original_time, NULL);
+
+    while (1) {
+        int res = schedule();
+        if (res != 0) {
+            printf("Task queue empty.\n");
+            exit(0);
+        }
+        if (INT_FLAG == 1) { //处理中断
+            INT_FLAG = 0;
+            schedule(); //再次调度
+        }
+    }
+    exit(0);
+}
+
+long now_time() {
+    long time;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    time = ((tv.tv_sec - original_time.tv_sec) * 1000 +
+            (tv.tv_usec - original_time.tv_usec) / 1000); // 毫秒
+    return time;
+}
+
+void print_time() {
+    printf("time: %ld\t\t", now_time()); // 毫秒
+}
+
+static void get_pid(int *pid) {
+    *pid = uni_pid++;
 }
 
 void init_task() {
     INIT_LIST_HEAD(&t0.tasks);
-    t0.pid = get_pid();
-    printf("Creating threads...\n");
-    printf("pid\tcreateTime\trunTime\tstate\tpriority\n");
+    head = &t0.tasks;
+    get_pid(&t0.pid);
+    printf("Creating requests...\n");
+    printf("Pid\tCreateTime\tRunTime\tState\tPriority\n");
 }
 
-void create_task(unsigned long createTime,
+void create_task(unsigned long createTime,  //时间均以100毫秒为单位
                  unsigned long runTime,
-                 int state,   //1:停止  0:运行
-                 long prior) {
+                 int state,   //1:Stop  0:Run
+                 long prior,
+                 long slice) {
     struct task_struct *ts = malloc(sizeof(struct task_struct));
     ts->state = state;
-    ts->nice;
-    ts->pid = get_pid();
+
+#ifdef _PRIOR_
+    slice = 4;  //优先级调度每400ms进行调整
+#endif
+    ts->time_slice = slice;
+
+    get_pid(&ts->pid);
     ts->priority = prior;
-    ts->virt_value;
-    ts->virt_incr;
-//    struct tms times;
-    ts->start_time = createTime;
+    ts->run_time = runTime;
+    ts->left_time = runTime;
+    ts->create_time = createTime;
 
 //    print_info(ts);
     //加入任务队列
     list_add_tail(&ts->tasks, &t0.tasks);
 }
 
-void print_queue() {
-    struct list_head *head_p = &t0.tasks;
-    struct task_struct *tp;
-    list_for_each_entry(tp, head_p, tasks) {
-        print_info(tp);
+int over(struct task_struct *ts) {
+    list_del(&ts->tasks);
+    ts->state = TASK_KILLED;
+    int deadPid = ts->pid;
+    long lastState = ts->state;
+    free(ts);
+    print_time();
+    printf("task %d stopped\n", deadPid);
+    return lastState != TASK_KILLED;
+}
+
+void task_int(struct task_struct *ts) {
+    print_time();
+    printf("task %d interrupted\n", ts->pid);
+    ts->state = TASK_INTERRUPTED;
+#ifdef _RR_
+    list_move_tail(&ts->tasks, head);   //移至队尾
+#endif
+    INT_FLAG = 1;   //中断标志置位
+}
+
+void execute_int(struct task_struct *ts) {
+    print_time();
+    printf("task %d is running\n", ts->pid);
+
+    unsigned long leftTime = ts->left_time;
+    if (leftTime <= ts->time_slice) {    //任务在中断前就结束运行
+        usleep(MS(leftTime));
+        ts->left_time = 0;
+        if (over(ts)) {
+            printf("Exit Error!!!\n");
+            exit(0);
+        }
+    } else {    //进入中断
+        usleep(MS(ts->time_slice)); //执行一个时间片后进入中断
+#ifdef _PRIOR_
+        ts->priority <<= 1; //aged
+#endif
+        ts->left_time = leftTime - ts->time_slice;  //减去运行时间
+        task_int(ts);
     }
 }
-//void print() { printf("test\n"); }
-//
-//void init_sigaction() {
-//    struct sigaction act;
-//    act.sa_handler = print;
-//    act.sa_flags = 0;
-//    sigemptyset(&act.sa_mask);
-//    sigaction(SIGPROF, &act, NULL); //设置信号 SIGPROF 的处理函数为 print_info
-//}
-//
-//void init_time() {
-//    struct itimerval value;
-//    value.it_value.tv_sec = 2; //每隔1秒
-//    value.it_value.tv_usec = 0;
-//    value.it_interval = value.it_value;
-//    setitimer(ITIMER_PROF, &value, NULL); //初始化 timer，到期发送 SIGPROF 信号
-//}
 
-int main(int argc, char *argv[]) {
-    //初始化
-    init_task();
-    //创建进程
-    create_task(0, 4, 0, 5);
-    create_task(1, 3, 0, 5);
-    create_task(2, 5, 0, 5);
-    create_task(3, 2, 0, 5);
-    create_task(4, 4, 0, 5);
-    print_queue();
-    //运行调度
-    printf("--------------------------------------------------------\n");
-    printf("Start Schedule:\n");
-    schedule();
-
-//    init_sigaction();
-//    init_time();
-//    while (1);
-    return 0;
+void execute(struct task_struct *ts) {
+    print_time();
+    printf("task %d is running\n", ts->pid);
+    usleep(MS(ts->run_time));   //do something
+    if (over(ts)) {
+        printf("Exit Error!!!\n");
+        exit(0);
+    }
 }
-
-
