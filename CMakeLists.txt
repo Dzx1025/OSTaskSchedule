@@ -10,12 +10,16 @@ OPTION(DEFINE_HRRN  "Option description" OFF) # Disabled by default
 
 IF (DEFINE_FCFS)
     ADD_DEFINITIONS(-D_FCFS_)
+    MESSAGE(STATUS "Defined _FCFS_!!!!!!!!!!")
 ELSEIF (DEFINE_SJF)
     ADD_DEFINITIONS(-D_SJF_)
+    MESSAGE(STATUS "Defined _SJF_!!!!!!!!!!")
 ELSEIF (DEFINE_RR)
     ADD_DEFINITIONS(-D_RR_)
+    MESSAGE(STATUS "Defined _RR_!!!!!!!!!!")
 ELSEIF (DEFINE_HRRN)
     ADD_DEFINITIONS(-D_HRRN_)
+    MESSAGE(STATUS "Defined _HRRN_!!!!!!!!!!")
 ENDIF ()
 
 add_executable(OSTaskSchedule main.c sched.h list.h sched.c)

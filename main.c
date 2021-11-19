@@ -3,11 +3,13 @@
 #include "sched.h"
 
 #define MS(time) (time*100*1000)
+#define MAX_PROCESS 100
 
 struct task_struct t0;  //init_task
 static int uni_pid = 0; //分配PID
 struct timeval original_time;   //程序起始时间
 static int INT_FLAG = 0;    //中断标志
+unsigned long cyclingTime[MAX_PROCESS];
 
 void print_time();
 
@@ -22,7 +24,7 @@ int do_exit(struct task_struct *ts); //任务结束
 void task_with_int(struct task_struct *ts);    //中断
 
 int main(int argc, char *argv[]) {
-    setbuf(stdout, 0);  //For Clion debug
+    //setbuf(stdout, 0);  //For Clion debug
     //初始化
     init_process();
     //创建进程
@@ -35,7 +37,19 @@ int main(int argc, char *argv[]) {
     print_queue();
     //运行调度
     printf("--------------------------------------------------------\n");
-    printf("Start Schedule:\n");
+    printf("Start ");
+#ifdef _FCFS_   // 先来先到服务算法
+    printf("FSFC");
+#elif defined(_SJF_)    // 短作业优先调度算法
+    printf("SJF");
+#elif defined(_RR_) // 时间片轮转调度算法
+    printf("RR");
+#elif defined(_HRRN_)  // 响应比高者优先调度算法
+    printf("HRRN");
+#else
+    printf("DEFAULT");
+#endif
+    printf(" Schedule:\n");
 
     gettimeofday(&original_time, NULL);
 
@@ -57,7 +71,12 @@ void print_time() {
 }
 
 void alloc_pid(int *pid) {
-    *pid = uni_pid++;
+    if (uni_pid < MAX_PROCESS) {
+        *pid = uni_pid++;
+    } else {
+        *pid = -1;
+        printf("Amount of process limit exceeded!!!\n");
+    }
 }
 
 void init_process() {
@@ -94,6 +113,7 @@ int do_exit(struct task_struct *ts) {
     ts->state = TASK_KILLED;
     int deadPid = ts->pid;
     long lastState = ts->state;
+    cyclingTime[ts->pid] = get_now_time() - ts->create_time;
     free(ts);
     print_time();
     printf("task %d stopped\n", deadPid);
