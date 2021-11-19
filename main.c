@@ -3,11 +3,13 @@
 #include "sched.h"
 
 #define MS(time) (time*100*1000)
+#define MAX_PROCESS 100
 
 struct task_struct t0;  //init_task
 static int uni_pid = 0; //分配PID
 struct timeval original_time;   //程序起始时间
 static int INT_FLAG = 0;    //中断标志
+unsigned long cyclingTime[MAX_PROCESS];
 
 void print_time();
 
@@ -57,7 +59,12 @@ void print_time() {
 }
 
 void alloc_pid(int *pid) {
-    *pid = uni_pid++;
+    if (uni_pid++ < MAX_PROCESS) {
+        *pid = uni_pid;
+    } else {
+        *pid = -1;
+        printf("Amount of process limit exceeded!!!\n");
+    }
 }
 
 void init_process() {
@@ -94,6 +101,7 @@ int do_exit(struct task_struct *ts) {
     ts->state = TASK_KILLED;
     int deadPid = ts->pid;
     long lastState = ts->state;
+    cyclingTime[ts->pid] = get_now_time() - ts->create_time;
     free(ts);
     print_time();
     printf("task %d stopped\n", deadPid);
