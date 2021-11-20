@@ -84,7 +84,7 @@ int schedule() {
         }
     }
 #else
-    printf("NOT DEFINED SCHEDULE!!!\n");
+#error NOT DEFINED SCHEDULE!!!
 #endif
 
     switch_to(next);    //上下文切换
