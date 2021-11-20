@@ -6,7 +6,7 @@
 
 Linux: 
 ```
-./build.py 算法名
+python build.py 算法名
 ```
 
 Windows:
