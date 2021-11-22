@@ -1,6 +1,9 @@
 #ifndef OS_TASK_SCHEDULE_SCHED_H
 #define OS_TASK_SCHEDULE_SCHED_H
 
+//for debug(defalut use FCFS)
+#define _FCFS_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
