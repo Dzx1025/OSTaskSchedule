@@ -72,7 +72,7 @@ int schedule() {
     unsigned long nextNice = current->nice;
     list_for_each_entry(tp, head_p, tasks) {
         if (EFFECTIVE_TASK(tp)) {
-            tp->nice = 1 + (long) ((get_now_time() - tp->last_int_time) / tp->run_time);     //nice=1+作业等待时间/作业运行时间
+            tp->nice = 1 + (long) ((get_now_time() - tp->last_int_time) / tp->run_time);    //nice=1+作业等待时间/作业运行时间
             if (tp->nice > nextNice) {
                 next = tp;
                 nextNice = tp->nice;
@@ -88,7 +88,7 @@ int schedule() {
     }
 #endif
 
-    switch_to(next);    //上下文切换
+    switch_to(next);    //切换
     return 0;
 }
 

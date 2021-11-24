@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     print_queue();
     //运行调度
-    printf("--------------------------------------------------------\n");
+    printf("-------------------------------------------------------------------\n");
     printf("Start ");
 #ifdef _FCFS_   // 先来先到服务算法
     printf("FSFC");
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 }
 
 void print_time() {
-    printf("time: %ld\t\t", get_now_time());    // 毫秒
+    printf("time: %-5ld==>> ", get_now_time());    // 毫秒
 }
 
 void alloc_pid(int *pid) {
