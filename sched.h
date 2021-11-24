@@ -2,7 +2,7 @@
 #define OS_TASK_SCHEDULE_SCHED_H
 
 //for debug(defalut use FCFS)
-#define _FCFS_
+//#define _FCFS_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,7 @@ struct list_head *head;
 
 #define CURRENT_TASK()  (list_entry((head)->next, struct task_struct, tasks))
 
-#define EFFECTIVE_TASK(ts) ((ts)->create_time <= (get_now_time() / 100))
+#define EFFECTIVE_TASK(ts) (((ts)->state != TASK_RUNNING) && (ts)->create_time <= (get_now_time() / 100))
 
 struct task_struct {
     volatile long state;        //说明了该进程是否可以执行,还是可中断等信息

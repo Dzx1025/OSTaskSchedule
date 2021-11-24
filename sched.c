@@ -46,20 +46,16 @@ int schedule() {
 
 #ifdef _FCFS_   // 先来先到服务算法
     list_for_each_entry(tp, head_p, tasks) {
-        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+        if (EFFECTIVE_TASK(tp)) {
             next = tp;
             break;
         }
     }
 #elif defined(_SJF_)    // 短作业优先调度算法
-    unsigned long nextCreateTime = current->create_time, nextRunTime = current->run_time;
+    unsigned long nextRunTime = current->run_time;
     list_for_each_entry(tp, head_p, tasks) {
-        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
-            if (tp->create_time < nextCreateTime) {
-                next = tp;
-                nextRunTime = tp->run_time;
-                nextCreateTime = tp->create_time;
-            } else if (tp->create_time == nextCreateTime && tp->run_time < nextRunTime) {
+        if (EFFECTIVE_TASK(tp)) {
+            if (tp->run_time < nextRunTime) {
                 next = tp;
                 nextRunTime = tp->run_time;
             }
@@ -67,7 +63,7 @@ int schedule() {
     }
 #elif defined(_RR_) // 时间片轮转调度算法
     list_for_each_entry(tp, head_p, tasks) {
-        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+        if (EFFECTIVE_TASK(tp)) {
             next = tp;
             break;
         }
@@ -75,7 +71,7 @@ int schedule() {
 #elif defined(_HRRN_)  // 响应比高者优先调度算法
     unsigned long nextNice = current->nice;
     list_for_each_entry(tp, head_p, tasks) {
-        if (tp->state != TASK_RUNNING && EFFECTIVE_TASK(tp)) {
+        if (EFFECTIVE_TASK(tp)) {
             tp->nice = 1 + (long) ((get_now_time() - tp->last_int_time) / tp->run_time);     //nice=1+作业等待时间/作业运行时间
             if (tp->nice > nextNice) {
                 next = tp;
@@ -83,8 +79,13 @@ int schedule() {
             }
         }
     }
-#else
-#error NOT DEFINED SCHEDULE!!!
+#else   //默认FCFS
+    list_for_each_entry(tp, head_p, tasks) {
+        if (EFFECTIVE_TASK(tp)) {
+            next = tp;
+            break;
+        }
+    }
 #endif
 
     switch_to(next);    //上下文切换

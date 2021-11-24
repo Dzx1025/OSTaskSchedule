@@ -29,10 +29,10 @@ int main(int argc, char *argv[]) {
     init_process();
     //创建进程
     create_process(0, 4, TASK_INTERRUPTED, 1);
-    create_process(2, 3, TASK_INTERRUPTED, 1);
-    create_process(3, 5, TASK_INTERRUPTED, 1);
+    create_process(1, 3, TASK_INTERRUPTED, 1);
+    create_process(2, 5, TASK_INTERRUPTED, 1);
     create_process(3, 2, TASK_INTERRUPTED, 1);
-    create_process(2, 2, TASK_INTERRUPTED, 1);
+    create_process(4, 2, TASK_INTERRUPTED, 1);
 
     print_queue();
     //运行调度
