@@ -3,7 +3,7 @@
 struct task_struct *current;    //存储当前任务
 
 void print_info(struct task_struct *ts) {
-    printf("%d\t\t%lu\t\t%d\t\t%d\t\t%d\n", ts->pid, ts->create_time, 0, 0, 0);
+    printf("%d\t%lu\t\t%ld\t%ld\t%ld\n", ts->pid, ts->create_time, ts->run_time, ts->state, ts->nice);
 }
 
 inline void print_queue() {
